@@ -25,6 +25,17 @@ func isERC20Contract(addr common.Address) bool {
 	return true
 }
 
+func parseAddress(hash common.Hash) (addr common.Address, ok bool) {
+	for i := 0; i < 12; i++ {
+		if hash[i] != 0 {
+			return
+		}
+	}
+	addr = common.BytesToAddress(hash[:])
+	ok = true
+	return
+}
+
 func parseErc20TransferLog(log *types.Log, dataParser abi.Arguments) (from common.Address, to common.Address, amount *big.Int, ok bool) {
 	if len(log.Topics) != 3 {
 		return
@@ -32,8 +43,14 @@ func parseErc20TransferLog(log *types.Log, dataParser abi.Arguments) (from commo
 	if log.Topics[0] != eventSeletor {
 		return
 	}
-	from = common.BytesToAddress(log.Topics[1][:])
-	to = common.BytesToAddress(log.Topics[2][:])
+	from, ok = parseAddress(log.Topics[1])
+	if !ok {
+		return
+	}
+	to, ok = parseAddress(log.Topics[2])
+	if !ok {
+		return
+	}
 	params, err := dataParser.Unpack(log.Data)
 	if err != nil {
 		return
